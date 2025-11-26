@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,75 @@ import { apiRequest } from "@/lib/queryClient";
 import type { Project, Video as VideoType, AiModel, ContactMessage } from "../../../shared/schema";
 import WhatsAppSettings from "@/components/admin/whatsapp-settings";
 import { BlogManagement } from "@/components/admin/BlogManagement";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Sortable Row Component
+function SortableProjectRow({ project, onEdit, onDelete }: { project: Project; onEdit: (project: Project) => void; onDelete: (id: number) => void }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: project.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell>
+        <div className="flex items-center cursor-move" {...attributes} {...listeners}>
+          <GripVertical className="w-4 h-4 text-gray-400" />
+          <span className="ml-2">{project.orderIndex}</span>
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{project.title}</TableCell>
+      <TableCell>{project.category}</TableCell>
+      <TableCell>
+        {project.link ? (
+          <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+            Linki Görüntüle
+          </a>
+        ) : '-'}
+      </TableCell>
+      <TableCell className="text-right">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onEdit(project)}
+        >
+          <Edit className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(project.id)}
+        >
+          <Trash2 className="w-4 h-4 text-red-500" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -42,6 +111,11 @@ export default function AdminDashboard() {
   const [editingVideo, setEditingVideo] = useState<VideoType | null>(null);
   const [editingAiModel, setEditingAiModel] = useState<AiModel | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [projectImageUrl, setProjectImageUrl] = useState<string>("");
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState<string>("");
+  const projectImageInputRef = useRef<HTMLInputElement>(null);
+  const videoThumbnailInputRef = useRef<HTMLInputElement>(null);
 
   // Check if user is authenticated
   const { data: user, isLoading: userLoading } = useQuery({
@@ -50,22 +124,22 @@ export default function AdminDashboard() {
   });
 
   // Get all data
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<ContactMessage[]>({
     queryKey: ["/api/admin/messages"],
     enabled: !!user,
   });
 
-  const { data: projects = [] } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
     enabled: !!user,
   });
 
-  const { data: videos = [] } = useQuery({
+  const { data: videos = [] } = useQuery<VideoType[]>({
     queryKey: ["/api/videos"],
     enabled: !!user,
   });
 
-  const { data: aiModels = [] } = useQuery({
+  const { data: aiModels = [] } = useQuery<AiModel[]>({
     queryKey: ["/api/ai-models"],
     enabled: !!user,
   });
@@ -81,12 +155,26 @@ export default function AdminDashboard() {
     }
   }, [user, userLoading, toast, setLocation]);
 
+  // Reset image URLs when dialogs open/close
+  useEffect(() => {
+    if (!editingProject) {
+      setProjectImageUrl("");
+    } else if (editingProject.image) {
+      setProjectImageUrl(editingProject.image);
+    }
+  }, [editingProject]);
+
+  useEffect(() => {
+    if (!editingVideo) {
+      setVideoThumbnailUrl("");
+    } else if (editingVideo.thumbnail) {
+      setVideoThumbnailUrl(editingVideo.thumbnail);
+    }
+  }, [editingVideo]);
+
   // Mutations
   const createProjectMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/admin/projects", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/projects", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Başarılı", description: "Proje eklendi." });
@@ -96,10 +184,7 @@ export default function AdminDashboard() {
 
   const updateProjectMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/admin/projects/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("PUT", `/api/admin/projects/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Başarılı", description: "Proje güncellendi." });
@@ -108,9 +193,7 @@ export default function AdminDashboard() {
   });
 
   const deleteProjectMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/admin/projects/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/projects/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Başarılı", description: "Proje silindi." });
@@ -119,10 +202,7 @@ export default function AdminDashboard() {
 
   // Similar mutations for videos and AI models
   const createVideoMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/admin/videos", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/videos", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       toast({ title: "Başarılı", description: "Video eklendi." });
@@ -132,10 +212,7 @@ export default function AdminDashboard() {
 
   const updateVideoMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/admin/videos/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("PUT", `/api/admin/videos/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       toast({ title: "Başarılı", description: "Video güncellendi." });
@@ -144,9 +221,7 @@ export default function AdminDashboard() {
   });
 
   const deleteVideoMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/admin/videos/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/videos/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
       toast({ title: "Başarılı", description: "Video silindi." });
@@ -154,10 +229,7 @@ export default function AdminDashboard() {
   });
 
   const createAiModelMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("/api/admin/ai-models", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest("POST", "/api/admin/ai-models", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ai-models"] });
       toast({ title: "Başarılı", description: "AI modeli eklendi." });
@@ -167,10 +239,7 @@ export default function AdminDashboard() {
 
   const updateAiModelMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => 
-      apiRequest(`/api/admin/ai-models/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("PUT", `/api/admin/ai-models/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ai-models"] });
       toast({ title: "Başarılı", description: "AI modeli güncellendi." });
@@ -179,14 +248,87 @@ export default function AdminDashboard() {
   });
 
   const deleteAiModelMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/admin/ai-models/${id}`, {
-      method: "DELETE",
-    }),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/ai-models/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ai-models"] });
       toast({ title: "Başarılı", description: "AI modeli silindi." });
     },
   });
+
+  // File upload handler
+  const handleImageUpload = async (file: File, type: 'project' | 'video') => {
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      
+      if (type === 'project') {
+        setProjectImageUrl(data.url);
+      } else {
+        setVideoThumbnailUrl(data.url);
+      }
+      
+      toast({
+        title: "Başarılı",
+        description: "Resim yüklendi.",
+      });
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Resim yüklenemedi.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleProjectDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = projects.findIndex((p: Project) => p.id === active.id);
+      const newIndex = projects.findIndex((p: Project) => p.id === over.id);
+
+      const newProjects = arrayMove(projects, oldIndex, newIndex);
+      
+      // Optimistically update the UI
+      queryClient.setQueryData<Project[]>(['/api/projects'], newProjects.map((p, index) => ({
+        ...p,
+        orderIndex: index
+      })));
+      
+      // Update each project's order on the server
+      newProjects.forEach((project: Project, index: number) => {
+        if (project.orderIndex !== index) {
+          updateProjectMutation.mutate({ 
+            id: project.id, 
+            data: { orderIndex: index } 
+          });
+        }
+      });
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -218,7 +360,7 @@ export default function AdminDashboard() {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
       link: formData.get("link") as string || null,
-      image: formData.get("image") as string || null,
+      image: projectImageUrl || formData.get("image") as string || null,
       category: formData.get("category") as string,
       orderIndex: parseInt(formData.get("orderIndex") as string || "0"),
     };
@@ -228,6 +370,7 @@ export default function AdminDashboard() {
     } else {
       createProjectMutation.mutate(data);
     }
+    setProjectImageUrl("");
   };
 
   const handleVideoSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -237,7 +380,7 @@ export default function AdminDashboard() {
       title: formData.get("title") as string,
       description: formData.get("description") as string || null,
       videoUrl: formData.get("videoUrl") as string,
-      thumbnail: formData.get("thumbnail") as string || null,
+      thumbnail: videoThumbnailUrl || formData.get("thumbnail") as string || null,
       orderIndex: parseInt(formData.get("orderIndex") as string || "0"),
     };
 
@@ -246,6 +389,7 @@ export default function AdminDashboard() {
     } else {
       createVideoMutation.mutate(data);
     }
+    setVideoThumbnailUrl("");
   };
 
   const handleAiModelSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -458,54 +602,38 @@ export default function AdminDashboard() {
               </div>
               <Card>
                 <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">Sıra</TableHead>
-                        <TableHead>Başlık</TableHead>
-                        <TableHead>Kategori</TableHead>
-                        <TableHead>Link</TableHead>
-                        <TableHead className="text-right">İşlemler</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projects.map((project) => (
-                        <TableRow key={project.id}>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <GripVertical className="w-4 h-4 text-gray-400" />
-                              <span className="ml-2">{project.orderIndex}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{project.title}</TableCell>
-                          <TableCell>{project.category}</TableCell>
-                          <TableCell>
-                            {project.link ? (
-                              <a href={project.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                Linki Görüntüle
-                              </a>
-                            ) : '-'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setEditingProject(project)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteProjectMutation.mutate(project.id)}
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </TableCell>
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleProjectDragEnd}
+                  >
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">Sıra</TableHead>
+                          <TableHead>Başlık</TableHead>
+                          <TableHead>Kategori</TableHead>
+                          <TableHead>Link</TableHead>
+                          <TableHead className="text-right">İşlemler</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <SortableContext 
+                        items={projects.map(p => p.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <TableBody>
+                          {projects.map((project) => (
+                            <SortableProjectRow
+                              key={project.id}
+                              project={project}
+                              onEdit={setEditingProject}
+                              onDelete={deleteProjectMutation.mutate}
+                            />
+                          ))}
+                        </TableBody>
+                      </SortableContext>
+                    </Table>
+                  </DndContext>
                 </CardContent>
               </Card>
             </div>
@@ -726,13 +854,50 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <Label htmlFor="image">Resim URL (Opsiyonel)</Label>
-              <Input
-                id="image"
-                name="image"
-                type="url"
-                defaultValue={editingProject?.image || ''}
-              />
+              <Label htmlFor="image">Resim</Label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    id="image"
+                    name="image"
+                    type="url"
+                    value={projectImageUrl || editingProject?.image || ''}
+                    onChange={(e) => setProjectImageUrl(e.target.value)}
+                    placeholder="Resim URL'si veya dosya yükleyin"
+                  />
+                  <input
+                    ref={projectImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'project');
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => projectImageInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Yükle'
+                    )}
+                  </Button>
+                </div>
+                {(projectImageUrl || editingProject?.image) && (
+                  <div className="relative w-full h-32 border rounded overflow-hidden">
+                    <img 
+                      src={projectImageUrl || editingProject?.image || ''} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="orderIndex">Sıralama</Label>
@@ -795,13 +960,50 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <Label htmlFor="thumbnail">Thumbnail URL (Opsiyonel)</Label>
-              <Input
-                id="thumbnail"
-                name="thumbnail"
-                type="url"
-                defaultValue={editingVideo?.thumbnail || ''}
-              />
+              <Label htmlFor="thumbnail">Thumbnail</Label>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    id="thumbnail"
+                    name="thumbnail"
+                    type="url"
+                    value={videoThumbnailUrl || editingVideo?.thumbnail || ''}
+                    onChange={(e) => setVideoThumbnailUrl(e.target.value)}
+                    placeholder="Thumbnail URL'si veya dosya yükleyin"
+                  />
+                  <input
+                    ref={videoThumbnailInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file, 'video');
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => videoThumbnailInputRef.current?.click()}
+                    disabled={uploadingImage}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'Yükle'
+                    )}
+                  </Button>
+                </div>
+                {(videoThumbnailUrl || editingVideo?.thumbnail) && (
+                  <div className="relative w-full h-32 border rounded overflow-hidden">
+                    <img 
+                      src={videoThumbnailUrl || editingVideo?.thumbnail || ''} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <Label htmlFor="orderIndex">Sıralama</Label>
