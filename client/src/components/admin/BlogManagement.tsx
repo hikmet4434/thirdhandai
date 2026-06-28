@@ -38,10 +38,7 @@ export function BlogManagement() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) =>
-      apiRequest("/api/admin/blog-posts", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", "/api/admin/blog-posts", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
       toast({ title: "Blog yazısı oluşturuldu!" });
@@ -52,10 +49,7 @@ export function BlogManagement() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) =>
-      apiRequest(`/api/admin/blog-posts/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("PUT", `/api/admin/blog-posts/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
       toast({ title: "Blog yazısı güncellendi!" });
@@ -66,7 +60,7 @@ export function BlogManagement() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) =>
-      apiRequest(`/api/admin/blog-posts/${id}`, { method: "DELETE" }),
+      apiRequest("DELETE", `/api/admin/blog-posts/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/blog-posts"] });
       toast({ title: "Blog yazısı silindi!" });
@@ -248,7 +242,7 @@ export function BlogManagement() {
                 <Switch
                   id="published"
                   name="published"
-                  defaultChecked={editingPost?.published}
+                  defaultChecked={editingPost?.published ?? false}
                 />
                 <Label htmlFor="published">Yayınla</Label>
               </div>

@@ -158,10 +158,10 @@ export default function ServicesSection() {
                 <div className={`w-16 h-16 ${service.bgColor} rounded-xl flex items-center justify-center mb-6 ${service.hoverBg} transition-colors`}>
                   <service.icon className={`w-8 h-8 ${service.iconColor} group-hover:text-white transition-colors`} />
                 </div>
-                <h3 className="text-xl font-heading text-white mb-4" style={{fontWeight: 700}}>{t(service.titleKey || service.title)}</h3>
-                <p className="font-sans text-slate-300 mb-6" style={{fontWeight: 500}}>{t(service.descriptionKey || service.description)}</p>
+                <h3 className="text-xl font-heading text-white mb-4" style={{fontWeight: 700}}>{t(service.titleKey)}</h3>
+                <p className="font-sans text-slate-300 mb-6" style={{fontWeight: 500}}>{t(service.descriptionKey)}</p>
                 <ul className="space-y-2 text-sm text-slate-300 mb-6" style={{fontWeight: 500}}>
-                  {(service.featureKeys || service.features).map((feature, featureIndex) => (
+                  {service.featureKeys.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
                       <Check className="w-4 h-4 text-green-400 mr-2 flex-shrink-0" />
                       {typeof feature === 'string' && feature.includes('.') ? t(feature) : feature}

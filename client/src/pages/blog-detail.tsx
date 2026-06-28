@@ -98,11 +98,11 @@ export default function BlogDetailPage() {
               <div dangerouslySetInnerHTML={{ __html: content }} />
             </div>
 
-            {post.tags && Array.isArray(post.tags) && post.tags.length > 0 && (
+            {Array.isArray(post.tags) && post.tags.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">{t('blog.tags')}:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {post.tags.map((tag, index) => (
+                  {(post.tags as string[]).map((tag, index) => (
                     <span
                       key={index}
                       className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"

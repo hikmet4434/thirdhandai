@@ -4,6 +4,7 @@ import { ExternalLink, Lightbulb, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import SpaceBackground from "./space-background";
+import type { Project } from "@shared/schema";
 
 export default function ProjectsSection() {
   const { t, language } = useLanguage();
@@ -14,7 +15,7 @@ export default function ProjectsSection() {
     }
   };
 
-  const { data: projects = [], isLoading } = useQuery({
+  const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
 
@@ -63,7 +64,7 @@ export default function ProjectsSection() {
                 {project.link && (
                   <Button 
                     className="bg-primary text-white hover:bg-primary/90"
-                    onClick={() => window.open(project.link, '_blank')}
+                    onClick={() => project.link && window.open(project.link, '_blank')}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     {t('projects.visitSite')}

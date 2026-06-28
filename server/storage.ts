@@ -118,7 +118,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteProject(id: number): Promise<boolean> {
     const result = await db.delete(projects).where(eq(projects.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Video methods
@@ -153,7 +153,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVideo(id: number): Promise<boolean> {
     const result = await db.delete(videos).where(eq(videos.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // AI Model methods
@@ -188,7 +188,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteAiModel(id: number): Promise<boolean> {
     const result = await db.delete(aiModels).where(eq(aiModels.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // WhatsApp Settings methods
@@ -256,7 +256,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<boolean> {
     const result = await db.delete(blogPosts).where(eq(blogPosts.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 }
 

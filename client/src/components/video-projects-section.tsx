@@ -4,6 +4,7 @@ import { Play, Video, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import SpaceBackground from "./space-background";
+import type { Video as VideoType } from "@shared/schema";
 
 export default function VideoProjectsSection() {
   const { t, language } = useLanguage();
@@ -14,7 +15,7 @@ export default function VideoProjectsSection() {
     }
   };
 
-  const { data: videos = [], isLoading } = useQuery({
+  const { data: videos = [], isLoading } = useQuery<VideoType[]>({
     queryKey: ["/api/videos"],
   });
 

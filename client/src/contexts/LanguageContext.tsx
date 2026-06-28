@@ -409,13 +409,32 @@ const translations = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const STORAGE_KEY = 'thirdhand.lang';
+
+const getInitialLanguage = (): Language => {
+  if (typeof window === 'undefined') return 'TR';
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  return saved === 'EN' || saved === 'TR' ? saved : 'TR';
+};
+
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('TR');
-  
+  const [language, setLanguageState] = useState<Language>(getInitialLanguage);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, lang);
+    }
+  };
+
+  React.useEffect(() => {
+    document.documentElement.lang = language === 'TR' ? 'tr' : 'en';
+  }, [language]);
+
   const t = (key: string): string => {
     return translations[language][key as keyof typeof translations['TR']] || key;
   };
-  
+
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
