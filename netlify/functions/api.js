@@ -102,15 +102,24 @@ app.post('/api/contact', (req, res) => {
   res.json({ success: true, message: 'Mesajınız başarıyla gönderildi' });
 });
 
-// Admin routes - Netlify'de authentication için Netlify Identity kullanabilirsiniz
+// Admin kullanıcıları (production'da Netlify Identity / hash'li şifre önerilir)
+const ADMIN_USERS = [
+  { id: 1, username: 'hikmet@texmart.com', password: 'Malatya4462' },
+  { id: 2, username: 'hikmettanriverdi', password: 'Tanriverdi4462!' },
+];
+
+// Admin routes
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body;
-  
-  // Basit authentication - production'da Netlify Identity kullanın
-  if (username === 'hikmet@texmart.com' && password === 'Malatya4462') {
-    res.json({ 
-      success: true, 
-      user: { id: 1, username: 'hikmet@texmart.com' } 
+
+  const user = ADMIN_USERS.find(
+    (u) => u.username === username && u.password === password
+  );
+
+  if (user) {
+    res.json({
+      success: true,
+      user: { id: user.id, username: user.username },
     });
   } else {
     res.status(401).json({ error: 'Geçersiz kullanıcı adı veya şifre' });

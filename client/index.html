@@ -85,7 +85,15 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    <!-- SesYaz sesli chatbot (sağ alt — WhatsApp sol altta olduğu için çakışmaz) -->
+    <script>
+      window.VoiceBotConfig = {
+        position: 'bottom-right',
+        offsetBottom: 20,
+        offsetX: 20,
+        appUrl: 'https://www.sesyaz.com/?embed=true&agent=d619f7ee'
+      };
+    </script>
+    <script src="https://www.sesyaz.com/voice-bot.js" async></script>
   </body>
 </html>
