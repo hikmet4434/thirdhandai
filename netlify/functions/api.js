@@ -102,11 +102,14 @@ app.post('/api/contact', (req, res) => {
   res.json({ success: true, message: 'Mesajınız başarıyla gönderildi' });
 });
 
-// Admin kullanıcıları (production'da Netlify Identity / hash'li şifre önerilir)
+// Admin bilgileri ortam değişkeninden gelir — koda gömülü şifre yok.
 const ADMIN_USERS = [
-  { id: 1, username: 'hikmet@texmart.com', password: 'Malatya4462' },
-  { id: 2, username: 'hikmettanriverdi', password: 'Tanriverdi4462!' },
-];
+  {
+    id: 1,
+    username: process.env.ADMIN_USERNAME || 'hikmettanriverdi',
+    password: process.env.ADMIN_PASSWORD || '',
+  },
+].filter((u) => u.password);
 
 // Admin routes
 app.post('/api/admin/login', (req, res) => {

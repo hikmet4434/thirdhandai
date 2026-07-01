@@ -9,3 +9,7 @@ vite.config.ts.*
 # Uploaded files
 client/public/uploads/*
 !client/public/uploads/.gitkeep
+# Ortam değişkenleri (secret) — repoya girmemeli
+.env
+.env.local
+.env.*.local

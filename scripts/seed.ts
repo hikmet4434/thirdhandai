@@ -5,13 +5,14 @@ async function seed() {
   console.log("🚀 Starting database seeding...");
 
   try {
-    // 1. Admin kullanıcıları oluştur
-    console.log("👤 Creating admin users...");
+    // 1. Admin kullanıcısı oluştur (bilgiler ortam değişkeninden gelir — koda gömülü şifre yok)
+    console.log("👤 Creating admin user...");
+    const adminUsername = process.env.ADMIN_USERNAME || "admin";
+    const adminPassword = process.env.ADMIN_PASSWORD || "changeme";
     await db.insert(users).values([
-      { username: "admin", password: "admin123" }, // Production'da hash'lenmiş şifre kullanın!
-      { username: "hikmettanriverdi", password: "Tanriverdi4462!" },
+      { username: adminUsername, password: adminPassword },
     ]);
-    console.log("✅ Admin users created (admin / hikmettanriverdi)");
+    console.log(`✅ Admin user created (username: ${adminUsername})`);
 
     // 2. Örnek projeler
     console.log("📁 Creating sample projects...");
