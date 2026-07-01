@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +8,18 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Standart node-postgres sürücüsü: hem Coolify/yerel Postgres hem de Neon
+// (standart bağlantı dizesiyle) ile çalışır. SSL, bağlantı dizesinde
+// `sslmode=require` varsa ya da PGSSL=true ise etkinleşir.
+const url = process.env.DATABASE_URL;
+const needsSsl =
+  process.env.PGSSL === "true" ||
+  /sslmode=require/.test(url) ||
+  /\.neon\.tech/.test(url);
+
+export const pool = new pg.Pool({
+  connectionString: url,
+  ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+});
+
+export const db = drizzle(pool, { schema });
