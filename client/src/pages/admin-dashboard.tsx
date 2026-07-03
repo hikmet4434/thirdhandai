@@ -358,10 +358,13 @@ export default function AdminDashboard() {
     const formData = new FormData(e.currentTarget);
     const data = {
       title: formData.get("title") as string,
+      titleEn: formData.get("titleEn") as string || null,
       description: formData.get("description") as string,
+      descriptionEn: formData.get("descriptionEn") as string || null,
       link: formData.get("link") as string || null,
       image: projectImageUrl || formData.get("image") as string || null,
       category: formData.get("category") as string,
+      categoryEn: formData.get("categoryEn") as string || null,
       orderIndex: parseInt(formData.get("orderIndex") as string || "0"),
     };
 
@@ -817,7 +820,7 @@ export default function AdminDashboard() {
           </DialogHeader>
           <form onSubmit={handleProjectSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="title">Başlık</Label>
+              <Label htmlFor="title">Başlık (TR)</Label>
               <Input
                 id="title"
                 name="title"
@@ -826,7 +829,16 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <Label htmlFor="description">Açıklama</Label>
+              <Label htmlFor="titleEn">Başlık (EN)</Label>
+              <Input
+                id="titleEn"
+                name="titleEn"
+                defaultValue={editingProject?.titleEn || ''}
+                placeholder="İngilizce başlık (opsiyonel)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Açıklama (TR)</Label>
               <Textarea
                 id="description"
                 name="description"
@@ -836,12 +848,31 @@ export default function AdminDashboard() {
               />
             </div>
             <div>
-              <Label htmlFor="category">Kategori</Label>
+              <Label htmlFor="descriptionEn">Açıklama (EN)</Label>
+              <Textarea
+                id="descriptionEn"
+                name="descriptionEn"
+                defaultValue={editingProject?.descriptionEn || ''}
+                placeholder="İngilizce açıklama (opsiyonel)"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="category">Kategori (TR)</Label>
               <Input
                 id="category"
                 name="category"
                 defaultValue={editingProject?.category}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="categoryEn">Kategori (EN)</Label>
+              <Input
+                id="categoryEn"
+                name="categoryEn"
+                defaultValue={editingProject?.categoryEn || ''}
+                placeholder="İngilizce kategori (opsiyonel)"
               />
             </div>
             <div>

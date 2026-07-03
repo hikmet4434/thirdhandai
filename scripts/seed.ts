@@ -187,7 +187,7 @@ async function seed() {
 
     console.log("\n✨ Database seeding completed successfully!\n");
     console.log("📊 Summary:");
-    console.log("  • 1 admin user (username: admin, password: admin123)");
+    console.log(`  • 1 admin user (username: ${adminUsername})`);
     console.log("  • 3 sample projects");
     console.log("  • 2 sample videos");
     console.log("  • 3 AI models");

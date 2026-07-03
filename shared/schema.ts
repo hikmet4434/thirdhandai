@@ -28,14 +28,17 @@ export const insertContactMessageSchema = createInsertSchema(contactMessages).om
   createdAt: true,
 });
 
-// Projects table
+// Projects table (title/description/category = TR; *En alanları = EN, opsiyonel)
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
+  titleEn: text("title_en"),
   description: text("description").notNull(),
+  descriptionEn: text("description_en"),
   link: text("link"),
   image: text("image"),
   category: varchar("category", { length: 100 }).notNull(),
+  categoryEn: varchar("category_en", { length: 100 }),
   orderIndex: integer("order_index").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

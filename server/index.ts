@@ -8,6 +8,10 @@ import MemoryStore from "memorystore";
 const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
+// Coolify/Netlify gibi bir reverse proxy arkasında çalışırken, güvenli (secure)
+// oturum çerezinin gönderilebilmesi için proxy'ye güvenmemiz gerekir. Bu ayar
+// olmadan HTTPS proxy + HTTP container durumunda oturum tutmaz ("Yetkisiz Erişim").
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -21,8 +25,11 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      // "auto": bağlantı HTTPS ise güvenli çerez, değilse normal — trust proxy ile
+      // proxy'nin X-Forwarded-Proto başlığına göre doğru çalışır.
+      secure: "auto",
       httpOnly: true,
+      sameSite: "lax",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })

@@ -1,51 +1,21 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
+import { PROJECTS_SEED } from "@shared/projects-seed";
+import type { Project as DbProject } from "@shared/schema";
 import "@/styles/aurora-home.css";
 
-type Project = {
-  n: string;
-  u: string;
-  tr: { t: string; d: string };
-  en: { t: string; d: string };
+// Karta çizilecek normalize edilmiş proje şekli. Hem veritabanı satırları
+// (admin panelden yönetilen) hem de statik seed listesi bu şekle indirgenir.
+type Card = {
+  name: string;
+  link: string;
+  category: string;
+  description: string;
+  image: string | null;
 };
-
-// Sıra, kullanıcının verdiği listeyle birebir aynıdır.
-const PROJECTS: Project[] = [
-  { n: "Abhibe", u: "https://abhibe.com", tr: { t: "Hibe & Fon", d: "İşletmeler için AB ve devlet hibelerini, teşvikleri tespit edip başvuru sürecini kolaylaştıran platform." }, en: { t: "Grants & Funding", d: "Platform that finds EU and government grants/incentives for businesses and simplifies applications." } },
-  { n: "Hibe Destek", u: "https://hibedestek.com", tr: { t: "Hibe & Fon", d: "KOBİ'leri uygun hibe ve destek programlarıyla eşleştiren danışmanlık platformu." }, en: { t: "Grants & Funding", d: "Advisory platform matching SMEs with suitable grant and support programs." } },
-  { n: "SesYaz", u: "https://sesyaz.com", tr: { t: "Sesli AI", d: "Konuşmayı metne çeviren, web sitelerine gömülebilen yapay zeka destekli sesli asistan ve chatbot platformu." }, en: { t: "Voice AI", d: "AI voice assistant and chatbot platform that converts speech to text and embeds into websites." } },
-  { n: "Fasheone", u: "https://fasheone.com/", tr: { t: "E-ticaret", d: "Moda e-ticaret için AI destekli kişiselleştirilmiş alışveriş ve stil önerisi platformu." }, en: { t: "E-commerce", d: "AI-powered personalized shopping and styling platform for fashion e-commerce." } },
-  { n: "Fasheone Sanal Deneme", u: "https://virtual-try-on.fasheone.com/landing", tr: { t: "Sanal Deneme", d: "Kıyafetleri yapay zeka ile sanal olarak deneyip nasıl durduğunu gösteren virtual try-on deneyimi." }, en: { t: "Virtual Try-On", d: "AI virtual try-on that shows how clothes look on you before buying." } },
-  { n: "Fasheone Shoes", u: "https://shoes.fasheone.com/", tr: { t: "Sanal Deneme", d: "Ayakkabılar için AI destekli sanal deneme ve online mağaza deneyimi." }, en: { t: "Virtual Try-On", d: "AI-powered virtual try-on and online store experience for shoes." } },
-  { n: "Fasheone Lingerie", u: "https://lingeria.fasheone.com/", tr: { t: "Sanal Deneme", d: "İç giyim koleksiyonu için sanal deneme destekli alışveriş deneyimi." }, en: { t: "Virtual Try-On", d: "Virtual try-on shopping experience for the lingerie collection." } },
-  { n: "Fasheone Style", u: "https://style.fasheone.com/login", tr: { t: "Stil Asistanı", d: "Kişiye özel kombin ve stil önerileri sunan yapay zeka moda danışmanı." }, en: { t: "Style Advisor", d: "AI fashion advisor offering personalized outfit and style recommendations." } },
-  { n: "Kumaş App", u: "https://kumas.app", tr: { t: "Tekstil", d: "Tekstil sektörü için kumaş arama, listeleme ve B2B ticaret uygulaması." }, en: { t: "Textile", d: "Fabric search, listing and B2B trade app for the textile industry." } },
-  { n: "Sektör Ara", u: "https://sektorara.com.tr/", tr: { t: "B2B", d: "Sektörlere göre firma ve tedarikçi bulmayı sağlayan B2B keşif platformu." }, en: { t: "B2B", d: "B2B discovery platform for finding companies and suppliers by sector." } },
-  { n: "Soru Merkezi", u: "https://sorumerkezi.com", tr: { t: "Destek", d: "Yapay zeka destekli soru-cevap ve yardım/destek merkezi platformu." }, en: { t: "Support", d: "AI-powered Q&A and help/support center platform." } },
-  { n: "Akıllı Buzdolabı", u: "https://akillibuzdolabi.seymata.com/", tr: { t: "AI Uygulama", d: "Buzdolabındaki ürünlere göre tarif öneren ve stok takibi yapan akıllı asistan." }, en: { t: "AI App", d: "Smart assistant that suggests recipes from fridge contents and tracks stock." } },
-  { n: "Meta Reklam Yöneticisi", u: "https://a88s0s0wsg8okco8cgoo8og8.seymata.com/", tr: { t: "Reklam / Meta", d: "Meta (Facebook & Instagram) reklam kampanyalarını oluşturup yöneten ve performansını optimize eden özel program." }, en: { t: "Ads / Meta", d: "A custom program to create, manage and optimize Meta (Facebook & Instagram) ad campaigns." } },
-  { n: "Reklamix", u: "https://reklamix.app/", tr: { t: "Pazarlama", d: "Yapay zeka ile reklam metni ve görseli üreten dijital pazarlama aracı." }, en: { t: "Marketing", d: "Digital marketing tool that generates ad copy and creatives with AI." } },
-  { n: "Tan Akademi", u: "https://tanakademi.com", tr: { t: "Eğitim", d: "Online eğitim ve kurs platformu; uzaktan öğrenme deneyimi." }, en: { t: "Education", d: "Online education and course platform with a remote learning experience." } },
-  { n: "Restoran Yönetim Sistemi", u: "https://isgo81479wi4menvmz1ur48s.seymata.com/", tr: { t: "Restoran", d: "Sipariş, rezervasyon, menü ve adisyon yönetimini tek çatıda toplayan hepsi bir arada restoran yönetim uygulaması." }, en: { t: "Restaurant", d: "All-in-one restaurant management app bringing orders, reservations, menu and billing together." } },
-  { n: "Reklamo", u: "https://reklamo.app/", tr: { t: "Pazarlama", d: "AI destekli reklam ve kampanya oluşturma/yönetim uygulaması." }, en: { t: "Marketing", d: "AI-powered ad and campaign creation/management app." } },
-  { n: "TradeOne", u: "https://tradeone.tr/tr", tr: { t: "Dış Ticaret", d: "İhracat ve dış ticaret için hedef pazar ve potansiyel müşteri bulma platformu." }, en: { t: "Foreign Trade", d: "Export and foreign trade platform for finding target markets and potential customers." } },
-  { n: "Verdi Jeans", u: "https://verdijeans.com", tr: { t: "E-ticaret", d: "Denim/jean markası için kurumsal e-ticaret ve ürün vitrini sitesi." }, en: { t: "E-commerce", d: "Corporate e-commerce and product showcase site for a denim brand." } },
-  { n: "VideoOne", u: "https://videoone.com.tr", tr: { t: "Video", d: "AI destekli video prodüksiyon ve içerik üretim platformu." }, en: { t: "Video", d: "AI-powered video production and content creation platform." } },
-  { n: "VideoTrans", u: "https://videotrans.app/", tr: { t: "Video / NLP", d: "Videoları otomatik çeviren, çok dilli altyazı ve seslendirme üreten yapay zeka aracı." }, en: { t: "Video / NLP", d: "AI tool that auto-translates videos and generates multilingual subtitles and voice-over." } },
-  { n: "WaPlus", u: "https://waplus.seymata.com/", tr: { t: "WhatsApp", d: "WhatsApp üzerinden otomatik mesajlaşma, pazarlama ve müşteri yönetimi aracı." }, en: { t: "WhatsApp", d: "Automated messaging, marketing and customer management tool over WhatsApp." } },
-  { n: "Zaman Makinesi", u: "https://zamanmakinesi.app/", tr: { t: "AI Uygulama", d: "Yapay zeka ile fotoğraf ve içerikleri farklı dönem/çağ temalarına dönüştüren görsel uygulaması." }, en: { t: "AI App", d: "Visual app that transforms photos and content into different era/period themes with AI." } },
-  { n: "Tarım ve Teknoloji Derneği", u: "https://tarimveteknolojidernegi.netlify.app", tr: { t: "Dernek", d: "Tarım ve teknoloji alanında faaliyet gösteren derneğin kurumsal tanıtım sitesi." }, en: { t: "Association", d: "Corporate site for an association working in agriculture and technology." } },
-  { n: "Product Analiz", u: "https://productanaliz.netlify.app", tr: { t: "E-ticaret / Analiz", d: "E-ticaret ürünlerini analiz eden, fiyat ve rekabet içgörüsü sunan araç." }, en: { t: "E-commerce / Analytics", d: "Tool that analyzes e-commerce products and surfaces price and competition insights." } },
-  { n: "SporToto Optimizasyon", u: "https://sportoto-optimizasyon.netlify.app", tr: { t: "Analiz", d: "Spor Toto kuponlarını veriyle optimize eden tahmin ve analiz aracı." }, en: { t: "Analytics", d: "Prediction and analytics tool that optimizes Spor Toto coupons with data." } },
-  { n: "Strateji Danışmanlık", u: "https://stratejidanismanlik.netlify.app", tr: { t: "Kurumsal", d: "İşletmelere strateji ve yönetim danışmanlığı sunan kurumsal tanıtım sitesi." }, en: { t: "Corporate", d: "Corporate site offering strategy and management consulting to businesses." } },
-  { n: "Hızlı Fatura", u: "https://hizlifatura.netlify.app", tr: { t: "Otomasyon", d: "KOBİ'ler için hızlı fatura oluşturma ve takip uygulaması." }, en: { t: "Automation", d: "Fast invoicing and tracking app for SMEs." } },
-  { n: "API Doküman", u: "https://apidocuman.netlify.app", tr: { t: "Geliştirici", d: "API'ler için otomatik dokümantasyon oluşturan geliştirici aracı." }, en: { t: "Developer", d: "Developer tool that auto-generates documentation for APIs." } },
-  { n: "Hikaye Oluşturucu", u: "https://hikayeolusturucu.netlify.app", tr: { t: "AI İçerik", d: "Yapay zeka ile özgün hikâye ve metin üreten içerik aracı." }, en: { t: "AI Content", d: "Content tool that generates original stories and text with AI." } },
-  { n: "Logo Anime", u: "https://logoanime.netlify.app", tr: { t: "Tasarım", d: "Statik logoları hareketlendiren, animasyonlu logo üreten tasarım aracı." }, en: { t: "Design", d: "Design tool that animates static logos into motion logos." } },
-  { n: "Realtime Translator", u: "https://realtimetranslatorht.netlify.app", tr: { t: "NLP", d: "Konuşmayı gerçek zamanlı çeviren anlık çeviri uygulaması." }, en: { t: "NLP", d: "Real-time speech translation app for instant conversations." } },
-];
 
 const SHOW = 12;
 
@@ -187,36 +157,57 @@ function shotProviders(url: string): string[] {
   ];
 }
 
-function ProjectCard({ p, index, lang, visit, details }: { p: Project; index: number; lang: "TR" | "EN"; visit: string; details: string }) {
-  const isLink = p.u !== "#";
+function ProjectCard({ p, index, visit, details }: { p: Card; index: number; visit: string; details: string }) {
+  const isLink = !!p.link && p.link !== "#";
   const hue = (index * 53) % 360;
   const hue2 = (hue + 40) % 360;
-  const loc = lang === "TR" ? p.tr : p.en;
-  const providers = isLink ? shotProviders(p.u) : [];
+  // Admin panelde bir görsel tanımlıysa onu kullan; yoksa canlı ekran
+  // görüntüsü servislerini sırayla dene, o da olmazsa baş-harf placeholder.
+  const providers = p.image ? [p.image] : isLink ? shotProviders(p.link) : [];
   const [shotIdx, setShotIdx] = useState(0);
   const shot = providers[shotIdx];
   return (
-    <a className="pjt" href={p.u} {...(isLink ? { target: "_blank", rel: "noopener" } : {})}>
+    <a className="pjt" href={p.link || "#"} {...(isLink ? { target: "_blank", rel: "noopener" } : {})}>
       <span className="pthumb">
         <span className="pph" style={{ background: `linear-gradient(135deg,hsl(${hue},68%,55%),hsl(${hue2},70%,45%))` }}>
-          {initials(p.n)}
+          {initials(p.name)}
         </span>
         {shot && (
           <img
             key={shot}
             loading="lazy"
-            alt={p.n}
+            alt={p.name}
             src={shot}
             onError={() => setShotIdx((i) => i + 1)}
           />
         )}
       </span>
-      <span className="ptag">{loc.t}</span>
-      <h4>{p.n}</h4>
-      <p>{loc.d}</p>
+      <span className="ptag">{p.category}</span>
+      <h4>{p.name}</h4>
+      <p>{p.description}</p>
       <span className="go">{isLink ? visit : details}</span>
     </a>
   );
+}
+
+// Statik seed listesini seçili dile göre Card şekline indirger.
+function seedToCards(lang: "TR" | "EN"): Card[] {
+  return PROJECTS_SEED.map((p) => {
+    const loc = lang === "TR" ? p.tr : p.en;
+    return { name: p.n, link: p.u, category: loc.t, description: loc.d, image: null };
+  });
+}
+
+// Veritabanı satırlarını seçili dile göre Card şekline indirger.
+// EN alanları boşsa TR alanlarına düşer.
+function dbToCards(rows: DbProject[], lang: "TR" | "EN"): Card[] {
+  return rows.map((r) => ({
+    name: (lang === "EN" && r.titleEn) || r.title,
+    link: r.link || "#",
+    category: (lang === "EN" && r.categoryEn) || r.category,
+    description: (lang === "EN" && r.descriptionEn) || r.description,
+    image: r.image || null,
+  }));
 }
 
 type FormState = { name: string; email: string; subject: string; message: string; privacy: boolean };
@@ -230,7 +221,18 @@ export default function Home() {
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const c = CONTENT[language];
-  const visible = showAll ? PROJECTS : PROJECTS.slice(0, SHOW);
+
+  // Projeler veritabanından (admin panelde yönetilen) çekilir; boşsa ya da
+  // istek başarısızsa statik seed listesine düşülür. Böylece admin panelden
+  // sıralama/içerik değiştirildiğinde ön sayfa da güncellenir.
+  const { data: dbProjects } = useQuery<DbProject[]>({
+    queryKey: ["/api/projects"],
+  });
+  const allCards: Card[] =
+    dbProjects && dbProjects.length > 0
+      ? dbToCards(dbProjects, language)
+      : seedToCards(language);
+  const visible = showAll ? allCards : allCards.slice(0, SHOW);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -376,10 +378,10 @@ export default function Home() {
             <p className="secsub">{c.projectsSec.sub}</p>
             <div className="pjt-grid">
               {visible.map((p, i) => (
-                <ProjectCard p={p} index={i} lang={language} visit={c.projectsSec.visit} details={c.projectsSec.details} key={p.n} />
+                <ProjectCard p={p} index={i} visit={c.projectsSec.visit} details={c.projectsSec.details} key={`${p.name}-${i}`} />
               ))}
             </div>
-            {!showAll && PROJECTS.length > SHOW && (
+            {!showAll && allCards.length > SHOW && (
               <div style={{ marginTop: 34 }}>
                 <button className="btn btn-soft" onClick={() => setShowAll(true)}>
                   {c.projectsSec.more}
