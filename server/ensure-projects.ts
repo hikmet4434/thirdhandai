@@ -1,14 +1,16 @@
-import { db } from "./db";
+import { db, pool } from "./db";
 import { projects } from "@shared/schema";
 import { PROJECTS_SEED } from "@shared/projects-seed";
 
 // Eski demo tohumundan (scripts/seed.ts) gelen proje başlıkları.
-// Bunlardan biri veritabanında bulunuyorsa, tablo gerçek projelerle
-// yeniden doldurulur.
+// Tablo yalnızca bunları içeriyorsa gerçek projelerle değiştirilir.
 const DEMO_TITLES = new Set([
   "E-Ticaret Chatbot",
   "Veri Analizi Dashboard",
   "Doğal Dil İşleme Sistemi",
+  // Netlify demo veri seti (olur da kullanılmışsa)
+  "fasheone.com",
+  "AI Müşteri Destek Botu",
 ]);
 
 function realProjectRows() {
@@ -25,30 +27,52 @@ function realProjectRows() {
   }));
 }
 
-// Sunucu açılışında çağrılır. Projeler tablosu boşsa ya da yalnızca eski
-// demo projeleri içeriyorsa, gerçek 32 projeyi (kullanıcının verdiği sırayla)
-// yükler. Kullanıcı kendi projelerini eklediyse / sıralamayı değiştirdiyse
-// hiçbir şey yapmaz; böylece admin panelde yapılan düzenlemeler korunur.
+// EN sütunları eksikse ekle (db:push çalıştırılmamış olma ihtimaline karşı,
+// güvenli/idempotent). Sütunlar zaten varsa hiçbir şey yapmaz.
+async function ensureEnColumns() {
+  await pool.query(`
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS title_en text;
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS description_en text;
+    ALTER TABLE projects ADD COLUMN IF NOT EXISTS category_en varchar(100);
+  `);
+}
+
+// Sunucu açılışında çağrılır. Projeler tablosu boşsa ya da yalnızca eski demo
+// projelerini içeriyorsa, gerçek 32 projeyi (kullanıcının verdiği sırayla,
+// TR/EN) yükler. Kullanıcı kendi projelerini eklediyse / sıralamayı
+// değiştirdiyse dokunmaz; böylece admin paneldeki düzenlemeler korunur.
 export async function ensureProjectsSeeded() {
   try {
+    await ensureEnColumns();
+
     const existing = await db.select().from(projects);
+    const titles = existing.map((p) => p.title);
+    console.log(
+      `🔍 [projects] ${existing.length} proje bulundu: ${JSON.stringify(titles)}`,
+    );
+
     const isEmpty = existing.length === 0;
     const isDemoOnly =
       existing.length > 0 && existing.every((p) => DEMO_TITLES.has(p.title));
 
     if (!isEmpty && !isDemoOnly) {
-      return; // Gerçek/özelleştirilmiş veri var — dokunma.
+      console.log(
+        "ℹ️  [projects] Gerçek/özelleştirilmiş veri var — otomatik yükleme atlandı.",
+      );
+      return;
     }
 
     if (isDemoOnly) {
+      console.log("🧹 [projects] Demo projeler siliniyor...");
       await db.delete(projects);
     }
+
     await db.insert(projects).values(realProjectRows());
     console.log(
-      `✅ Projeler otomatik yüklendi (${PROJECTS_SEED.length} gerçek proje).`,
+      `✅ [projects] ${PROJECTS_SEED.length} gerçek proje yüklendi.`,
     );
   } catch (error) {
-    // Açılışı bloklamamak için hatayı yalnızca logla.
-    console.error("⚠️  Proje otomatik yükleme atlandı:", error);
+    // Açılışı bloklamamak için hatayı yalnızca logla (ama görünür olsun).
+    console.error("❌ [projects] Otomatik yükleme başarısız:", error);
   }
 }
