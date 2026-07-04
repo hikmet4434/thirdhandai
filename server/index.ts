@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { ensureProjectsSeeded } from "./ensure-projects";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -67,6 +68,11 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Açılışta ön sayfa projelerini veritabanına yükle (boşsa ya da yalnızca
+  // eski demo projeleri varsa). Böylece admin panel projeleri elle komut
+  // çalıştırmadan görüntüler ve sıralanabilir.
+  await ensureProjectsSeeded();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
