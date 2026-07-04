@@ -147,3 +147,46 @@
 @media(max-width:980px){.aurora-page .pjt-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:860px){.aurora-page .cards,.aurora-page .steps,.aurora-page .hero-card .body{grid-template-columns:1fr}.aurora-page .nav-links{display:none}}
 @media(max-width:560px){.aurora-page .pjt-grid{grid-template-columns:1fr}}
+
+/* ---------- Blog ---------- */
+.aurora-page .nav-links a.active-link{color:var(--p1);font-weight:700}
+.aurora-page .blog-hero{padding:70px 0 30px}
+
+/* Öne çıkan yazı */
+.aurora-page .blog-featured{display:grid;grid-template-columns:1.1fr 1fr;gap:0;border-radius:24px;overflow:hidden;margin-top:20px;transition:.25s;cursor:pointer}
+.aurora-page .blog-featured:hover{transform:translateY(-4px);box-shadow:0 22px 50px rgba(var(--accent-rgb),.22)}
+.aurora-page .bf-thumb{position:relative;min-height:280px;overflow:hidden}
+.aurora-page .bf-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.aurora-page .bf-body{padding:34px;display:flex;flex-direction:column;justify-content:center}
+.aurora-page .bf-body h2{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-.02em;margin:10px 0 12px;line-height:1.15;font-family:inherit !important}
+.aurora-page .bf-body p{color:var(--muted);font-size:15px;margin-bottom:14px}
+
+/* Yazı listesi */
+.aurora-page .blog-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:34px;text-align:left}
+.aurora-page .blog-card{cursor:pointer}
+.aurora-page .blog-card .pthumb{aspect-ratio:16/9;background:linear-gradient(135deg,var(--p2),var(--p1))}
+.aurora-page .blog-meta{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-top:10px}
+
+/* Makale (detay) */
+.aurora-page .article{max-width:760px;margin:30px auto 0}
+.aurora-page .article-back{display:block;color:var(--p1);font-weight:600;font-size:14px;margin-bottom:22px}
+.aurora-page .article-title{font-size:clamp(28px,4.6vw,44px);font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:12px 0;font-family:inherit !important}
+.aurora-page .article-meta{margin-bottom:22px}
+.aurora-page .article-cover{border-radius:22px;overflow:hidden;margin:8px 0 26px;box-shadow:0 16px 44px rgba(80,70,160,.16)}
+.aurora-page .article-cover img{width:100%;display:block;max-height:440px;object-fit:cover}
+.aurora-page .article-lead{font-size:19px;color:var(--ink);font-weight:500;line-height:1.6;margin-bottom:24px}
+.aurora-page .article-body{font-size:16.5px;color:#2c3242;line-height:1.75}
+.aurora-page .article-body h2{font-size:25px;font-weight:800;letter-spacing:-.01em;margin:34px 0 12px;font-family:inherit !important}
+.aurora-page .article-body h3{font-size:20px;font-weight:700;margin:26px 0 10px;font-family:inherit !important}
+.aurora-page .article-body p{margin:0 0 16px}
+.aurora-page .article-body ul{margin:0 0 18px;padding-left:22px}
+.aurora-page .article-body li{margin-bottom:8px}
+.aurora-page .article-body strong{color:var(--ink)}
+.aurora-page .article-body figure{margin:26px 0}
+.aurora-page .article-body .blog-img{width:100%;border-radius:16px;display:block;box-shadow:0 12px 34px rgba(80,70,160,.14)}
+.aurora-page .article-body figcaption{margin-top:9px;font-size:13.5px;color:var(--muted);text-align:center;font-style:italic}
+.aurora-page .article-tags{display:flex;flex-wrap:wrap;gap:9px;margin:30px 0 10px;padding-top:22px;border-top:1px solid var(--line)}
+.aurora-page .tag-chip{font-size:12.5px;font-weight:600;color:var(--p1);background:rgba(var(--accent-rgb),.09);padding:6px 12px;border-radius:100px}
+
+@media(max-width:860px){.aurora-page .blog-grid{grid-template-columns:1fr 1fr}.aurora-page .blog-featured{grid-template-columns:1fr}.aurora-page .bf-thumb{min-height:200px}}
+@media(max-width:560px){.aurora-page .blog-grid{grid-template-columns:1fr}}
