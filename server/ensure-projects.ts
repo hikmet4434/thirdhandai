@@ -56,9 +56,24 @@ export async function ensureProjectsSeeded() {
       existing.length > 0 && existing.every((p) => DEMO_TITLES.has(p.title));
 
     if (!isEmpty && !isDemoOnly) {
-      console.log(
-        "ℹ️  [projects] Gerçek/özelleştirilmiş veri var — otomatik yükleme atlandı.",
-      );
+      // Gerçek veri var — mevcut sıralamaya/düzenlemeye dokunma. Sadece seed
+      // listesine sonradan eklenen (ör. Çevirist, Konferist) ve veritabanında
+      // henüz olmayan projeleri linke göre tespit edip sona ekle.
+      const existingLinks = new Set(existing.map((p) => p.link));
+      const missing = realProjectRows().filter((r) => !existingLinks.has(r.link));
+      if (missing.length > 0) {
+        const maxOrder = existing.reduce((m, p) => Math.max(m, p.orderIndex ?? 0), 0);
+        await db.insert(projects).values(
+          missing.map((r, i) => ({ ...r, orderIndex: maxOrder + 1 + i })),
+        );
+        console.log(
+          `➕ [projects] ${missing.length} yeni proje eklendi: ${JSON.stringify(missing.map((r) => r.title))}`,
+        );
+      } else {
+        console.log(
+          "ℹ️  [projects] Gerçek/özelleştirilmiş veri güncel — ekleme yapılmadı.",
+        );
+      }
       return;
     }
 
